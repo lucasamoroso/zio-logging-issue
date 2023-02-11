@@ -1,40 +1,82 @@
 package com.lamoroso.example
 
 import com.lamoroso.example.routes.TestRoute
-import zhttp.http.*
-import zhttp.http.middleware.HttpMiddleware
-import zhttp.service.Server as ZhttpServer
+import com.lamoroso.example.server.endpoints.TestRoutesEndpoints
+import com.lamoroso.example.service.TestService
+import sttp.tapir.model.ServerRequest
+import sttp.tapir.server.interceptor.RequestInterceptor
+import sttp.tapir.server.interceptor.RequestInterceptor.RequestResultEffectTransform
+import sttp.tapir.server.interceptor.RequestResult
+import sttp.tapir.server.interceptor.decodefailure.DefaultDecodeFailureHandler
+import sttp.tapir.server.ziohttp.ZioHttpInterpreter
+import sttp.tapir.server.ziohttp.ZioHttpServerOptions
+import sttp.tapir.swagger.bundle.SwaggerInterpreter
+import sttp.tapir.ztapir.*
 import zio.Random
-import zio.ZIO
 import zio.ZLayer
+import zio.*
+import zio.http.App
+import zio.http.ServerConfig
+import zio.http.{Server => ZIOHttpServer}
 
-final case class Server(
-    testRoute: TestRoute
-):
-  val allRoutes: HttpApp[Any, Throwable] = testRoute.routes
+final case class Server():
+  type RoutesEnv = TestService
 
-  val loggingMiddleware: HttpMiddleware[Any, Nothing] =
-    new HttpMiddleware[Any, Nothing] {
-      override def apply[R1 <: Any, E1 >: Nothing](
-          http: Http[R1, E1, Request, Response]
-      ): Http[R1, E1, Request, Response] =
-        Http.fromOptionFunction[Request] { request =>
-          Random.nextUUID.flatMap { requestId =>
-            ZIO.logAnnotate("rid", requestId.toString) {
-              http(request)
-            }
+//TODO: Add middleware to:
+// - log error responses and defects
+
+  lazy val requestIdInterceptor = RequestInterceptor.transformResultEffect(
+    new RequestResultEffectTransform[Task] {
+      override def apply[B](
+          request: ServerRequest,
+          result: Task[RequestResult[B]]
+      ): Task[RequestResult[B]] =
+        Random.nextUUID.flatMap { requestId =>
+          ZIO.logAnnotate("rid", requestId.toString) {
+            result
           }
         }
     }
+  )
 
-  def start: ZIO[Any, Throwable, Unit] =
-    for {
-      _ <- ZIO.logInfo(s"Starting migrations ...")
-      _ <- ZIO.logInfo(
-        s"Starting server at: http://localhost:8080/ ..."
+  val decodeFailureHandler = DefaultDecodeFailureHandler.default.copy(
+    respond = DefaultDecodeFailureHandler.respond(
+      _,
+      badRequestOnPathErrorIfPathShapeMatches = true,
+      badRequestOnPathInvalidIfPathShapeMatches = true
+    )
+  )
+
+  // Docs
+  lazy val swaggerEndpoints =
+    SwaggerInterpreter()
+      .fromEndpoints[Task](
+        List(TestRoutesEndpoints.listEndpoint),
+        "Subscriptions app",
+        "1.0"
       )
-      _ <- ZhttpServer
-        .start(8080, allRoutes @@ loggingMiddleware)
+
+  //  Build all server routes
+  lazy val routes: App[RoutesEnv] =
+    ZioHttpInterpreter(
+      ZioHttpServerOptions.customiseInterceptors
+        .prependInterceptor(requestIdInterceptor)
+        .decodeFailureHandler(decodeFailureHandler)
+        .options
+    )
+      .toApp(
+        List(TestRoute.listServerEndpoint).map(_.widen[RoutesEnv])
+          ++
+            swaggerEndpoints.map(_.widen[RoutesEnv])
+      )
+
+  def start =
+    for {
+      _ <- ZIO.logInfo(
+        s"Starting docs service at: http://localhost:8080/docs ..."
+      )
+      _ <- ZIOHttpServer
+        .serve(routes)
     } yield ()
 
 object Server:

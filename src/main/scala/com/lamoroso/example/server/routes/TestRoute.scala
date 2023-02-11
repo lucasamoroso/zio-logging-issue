@@ -1,19 +1,19 @@
 package com.lamoroso.example.routes
-import zhttp.http.*
+import com.lamoroso.example.server.endpoints.TestRoutesEndpoints.listEndpoint
+import sttp.tapir.ztapir
+import sttp.tapir.ztapir.*
 import zio.*
 import zio.json.*
-
-final case class TestRoute():
-  val routes: Http[Any, Throwable, Request, Response] =
-    Http.collectZIO[Request] {
-      // Return all subscriptions
-      case Method.GET -> !! =>
-        ZIO.logInfo("Executing request ...") *>
-          ZIO.sleep(500.millis) *>
-          ZIO.logInfo("Preparing response") *>
-          ZIO.succeed(Response.text("Ok"))
-    }
+import com.lamoroso.example.service.TestService
 
 object TestRoute:
+  val listServerEndpoint =
+    listEndpoint.zServerLogic { _ =>
+      for {
+        service <- ZIO.service[TestService]
+        _ <- ZIO.logInfo("Calling service  ...")
+        result <- service.list()
+        _ <- ZIO.logInfo(s"Got a result ${result} from service  ...")
+      } yield result
 
-  val layer = ZLayer.fromFunction(TestRoute.apply _)
+    }
