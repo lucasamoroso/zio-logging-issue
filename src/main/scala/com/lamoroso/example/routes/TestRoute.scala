@@ -1,5 +1,5 @@
 package com.lamoroso.example.routes
-import com.lamoroso.example.server.endpoints.TestRoutesEndpoints.listEndpoint
+import com.lamoroso.example.endpoints.TestRoutesEndpoints.listEndpoint
 import sttp.tapir.ztapir
 import sttp.tapir.ztapir.*
 import zio.*

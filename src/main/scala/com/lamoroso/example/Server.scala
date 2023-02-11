@@ -1,7 +1,8 @@
 package com.lamoroso.example
 
 import com.lamoroso.example.routes.TestRoute
-import com.lamoroso.example.server.endpoints.TestRoutesEndpoints
+import com.lamoroso.example.endpoints.TestRoutesEndpoints
+
 import com.lamoroso.example.service.TestService
 import sttp.tapir.model.ServerRequest
 import sttp.tapir.server.interceptor.RequestInterceptor

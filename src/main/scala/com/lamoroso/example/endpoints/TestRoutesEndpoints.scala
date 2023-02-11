@@ -1,4 +1,4 @@
-package com.lamoroso.example.server.endpoints
+package com.lamoroso.example.endpoints
 
 import sttp.model.StatusCode
 import sttp.tapir.Endpoint
