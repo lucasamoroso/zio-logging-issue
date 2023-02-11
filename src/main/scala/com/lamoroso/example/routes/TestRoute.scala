@@ -1,17 +1,17 @@
 package com.lamoroso.example.routes
+import com.lamoroso.example.service.TestService
 import zhttp.http.*
 import zio.*
 import zio.json.*
 
-final case class TestRoute():
+final case class TestRoute(service: TestService):
   val routes: Http[Any, Throwable, Request, Response] =
-    Http.collectZIO[Request] {
-      // Return all subscriptions
-      case Method.GET -> !! =>
-        ZIO.logInfo("Executing request ...") *>
-          ZIO.sleep(500.millis) *>
-          ZIO.logInfo("Preparing response") *>
-          ZIO.succeed(Response.text("Ok"))
+    Http.collectZIO[Request] { case Method.GET -> !! =>
+      for {
+        _ <- ZIO.logInfo("Calling service  ...")
+        result <- service.list()
+        _ <- ZIO.logInfo(s"Got a result ${result} from service  ...")
+      } yield Response.text("Ok")
     }
 
 object TestRoute:

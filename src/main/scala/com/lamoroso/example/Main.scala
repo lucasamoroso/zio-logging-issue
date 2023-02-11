@@ -10,6 +10,7 @@ import com.lamoroso.example.routes.TestRoute
 import com.lamoroso.example.routes.TestRoute
 
 import com.lamoroso.example.Server
+import com.lamoroso.example.service.TestService
 object Main extends ZIOAppDefault:
 
   override def run: ZIO[Any, Any, Any] =
@@ -17,6 +18,7 @@ object Main extends ZIOAppDefault:
       .serviceWithZIO[Server](_.start)
       .provide(
         Server.layer,
+        TestService.layer,
         TestRoute.layer,
         SLF4J.slf4j,
         removeDefaultLoggers
