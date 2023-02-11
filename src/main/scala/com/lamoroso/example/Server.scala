@@ -7,7 +7,6 @@ import zhttp.service.Server as ZhttpServer
 import zio.Random
 import zio.ZIO
 import zio.ZLayer
-
 final case class Server(
     testRoute: TestRoute
 ):

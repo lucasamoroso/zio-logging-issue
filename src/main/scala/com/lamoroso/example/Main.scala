@@ -7,6 +7,9 @@ import zio.logging.removeDefaultLoggers
 import com.lamoroso.example.Server
 import com.lamoroso.example.routes.TestRoute
 
+import com.lamoroso.example.routes.TestRoute
+
+import com.lamoroso.example.Server
 object Main extends ZIOAppDefault:
 
   override def run: ZIO[Any, Any, Any] =
